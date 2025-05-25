@@ -22,8 +22,9 @@
     <div class="text-center">
       <p><strong>牛顿分形</strong></p>
       多项式（建议次数不超过<em>5</em>）<br>
+      <button onclick="draw(-1)">根中心向四周绘图</button>或<button onclick="draw(-2)">全部根向四周绘图</button><br>
       <input id="coeffs" value="1,0,0,-1" size="15">
-      <button onclick="draw()">绘制分形</button><br>
+      <button onclick="draw(0)">绘制分形</button><br>
       说明：系数按次数由高到低，以半角,分隔，如(x^3-1)输入1,0,0,-1，切忌输入空格！<br>
       下图仅绘制根中心的局部复平面<br>
       多项式次数越高，绘制时间越长，请耐心等待
@@ -37,16 +38,19 @@
       const vx=(re_max-re_min)/(width-1);
       const vy=(im_max-im_min)/(height-1);
       const v=math.abs(math.complex(vx,vy));
-      const cx=width/2,cy=height/2,s=width*height;
+      const cx=width/2,cy=height/2;
       const speed=2;
       const maxRadius=math.abs(math.complex(cx,cy));
       let currentAnimId=null;
+      let k=0;
       //读取输入
-      function draw(){
+      function draw(n){
         if(currentAnimId!==null){
           cancelAnimationFrame(currentAnimId);
           currentAnimId=null;
         }
+        if(n===-1){k=0;return;}
+        if(n===-2){k=1;return;}
         let ptxt=document.getElementById('coeffs').value.trim();
         let coeffs=ptxt.split(',').map(s=>math.complex(s));
         if(coeffs.length<2){
@@ -69,7 +73,6 @@
         math.complex(re_min+cr,im_min+ci),math.complex(re_min+cr,im_max+ci),
         math.complex(re_max+cr,im_min+ci),math.complex(re_max+cr,im_max+ci)
         ];
-        let d0=minmax(roots,border);
         //准备canvas
         let canvas=document.getElementById('fractal');
         let ctx=canvas.getContext('2d');
@@ -77,21 +80,23 @@
         let img=ctx.createImageData(width,height);
         //对像素点涂染
         let rootColors=Colors(roots.length);
+        let rootspoint=roots.map(root=>0);
         for(let i=0;i<height;i++){
           let y=im_min+ci+i*vy;
           for(let j=0;j<width;j++){
             let x=re_min+cr+j*vx;
             let z=math.complex(x,y);
             let color=[255,255,255];
-            let n=Newton(f,df,z);
-            if(valid(n)){
-              let nr=check(roots,n);
+            let n0=Newton(f,df,z);
+            let nr=check(roots,n0);
+            if(valid(n0)){
               if(nr!==-1){
                 color=rootColors[nr];
               }
             }
             if(roots.some(r=>dist(z,r)<v)){
               color=[0,0,0]
+              if(k!==0&&nr!==-1&&rootspoint[nr]===0){rootspoint[nr]=[j,i];}
             }
             let offset=4*(j+i*width);
             img.data[offset]=color[0];
@@ -101,7 +106,13 @@
           }
         }
         let currRadius=0;
-        animatedraw(ctx,img,roots,currRadius,d0,cr,ci);
+        let d0;
+        if(k===0){d0=Math.sqrt(cx*cx+cy*cy);}
+        else{
+          let L=minmax(roots,border);
+          d0=L/vx;
+        }
+          animatedraw(ctx,img,rootspoint,currRadius,d0,cr,ci);
       }
       //系数数组到多项式
       function ArrayToExpr(c){
@@ -111,8 +122,8 @@
             else{
                 expr+='+'
                 expr+='('+c[i]+')'
-                let v=(c.length-1-i)===0?'':(c.length-1-i)===1?'*x':`*x^${c.length-1-i}`;
-                expr+=v;
+                let e=(c.length-1-i)===0?'':(c.length-1-i)===1?'*x':`*x^${c.length-1-i}`;
+                expr+=e;
             }
         }
         expr=expr.slice(1);
@@ -202,17 +213,23 @@
       return 255*t;
     }
     //动画演示根中心展开
-    function animatedraw(ctx,img,roots,currRadius,d0,cr,ci){
+    function animatedraw(ctx,img,rootspoint,currRadius,d0,cr,ci){
       if(currRadius===0){ctx.createImageData(width,height);}      
       let imganimate=ctx.getImageData(0,0,width,height);
       let Data=imganimate.data;
-      let r=currRadius*v;
       for(let i=0;i<height;i++){
-        let y=im_min+i*vy+ci;
         for(let j=0;j<width;j++){
-          let x=re_min+j*vx+cr;
-          let z=math.complex(x,y);
-          if(roots.some(root=>dist(root,z)<=r+speed*v)&&roots.every(root=>dist(root,z)>r)){
+          let r;
+          if(k===0){
+            let dx=j-cx;
+            let dy=i-cy;
+            r=Math.sqrt(dx*dx+dy*dy);
+          }
+          else{
+            let rootsxy=rootspoint.map(point=>Math.sqrt((point[0]-j)*(point[0]-j)+(point[1]-i)*(point[1]-i)));
+            r=math.min(rootsxy);
+          }
+          if(r>=currRadius&&r<currRadius+speed){
             let off=4*(j+i*width);
             Data[off]=img.data[off];
             Data[off+1]=img.data[off+1];
@@ -222,10 +239,10 @@
         }
       }
         ctx.putImageData(imganimate,0,0);
-        if(r<d0){
-          currentAnimId=requestAnimationFrame(()=>animatedraw(ctx,img,roots,currRadius+speed,d0,cr,ci));
+        if(currRadius<d0){
+          currentAnimId=requestAnimationFrame(()=>animatedraw(ctx,img,rootspoint,currRadius+speed,d0,cr,ci));
         }
-    }
+      }
     </script>
     </body>
 </html>
