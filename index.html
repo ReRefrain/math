@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <title>牛顿分形</title>
+    <script src="https://unpkg.com/mathjs@14.5.0/lib/browser/math.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
   <style>
     body{
@@ -30,7 +31,6 @@
   </style>
   </head>
   <body>
-    <script src="https://unpkg.com/mathjs@14.5.0/lib/browser/math.js"></script>
     <h1 style="font-family: 'Dancing Script',cursive;font-size: 6em;text-align: center;color: snow;text-shadow: 2px 2px 4px #222,4px 4px 8px #888;">Newton Fractal</h1>
     <div style="display: flex;justify-content: center;align-items: flex-start;max-height: 100vh;">
       <div class="panel" style="max-width: 350px;text-align: left;">
@@ -66,7 +66,7 @@
       let re_min,re_max,im_min,im_max;
       const cx=width/2,cy=height/2;
       const speed=2;
-      const maxRadius=math.abs(math.complex(cx,cy));
+      const maxRadius=Math.sqrt(cx*cx,cy*cy);
       let currentAnimId=null;
       let a;
       let max=maxIter;//动态调整迭代次数
