@@ -1,24 +1,29 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
-    <title>牛顿分形</title>
-    <script src="https://unpkg.com/mathjs@14.5.0/lib/browser/math.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="author" content="龚昊宇">
+  <meta name="description" content="通过输入多项式系数，实现该多项式牛顿分形的绘制。此外，可以自由选择绘制方式、调整形状参数和复平面大小，使得绘制形式与内容多样化">
+  <meta name="viewport" content="width=device-width" />
+  <title>牛顿分形</title>
+  <script src="https://unpkg.com/mathjs@14.5.0/lib/browser/math.js" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
+  <link rel="icon" href="images/Mnfrac1.png" type="image/png">
   <style>
-    body{
-      background-image: url('https://raw.githubusercontent.com/ReRefrain/math/main/images/R-C.jpg');
+    body {
+      background-image: url(images/R-C.jpg);
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       background-attachment: fixed;
     }
+
     .panel {
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       border: 2px solid #c4e08c;
       border-radius: 18px;
-      box-shadow: 0px 8px 20px 0px rgba(0,0,0,0.2);
+      box-shadow: 0px 8px 20px 0px rgba(0, 0, 0, 0.2);
       padding: 24px;
       margin: 18px;
       min-width: 200px;
@@ -26,316 +31,341 @@
       max-height: 350px;
       color: #fff;
     }
-    canvas {background: #fff;display:block;margin:1em auto}
-    input,button {font-size: 1em}
+
+    canvas {
+      background: #fff;
+      display: block;
+      margin: 1em auto
+    }
+
+    input,
+    button {
+      font-size: 1em
+    }
   </style>
-  </head>
-  <body>
-    <h1 style="font-family: 'Dancing Script',cursive;font-size: 6em;text-align: center;color: snow;text-shadow: 2px 2px 4px #222,4px 4px 8px #888;">Newton Fractal</h1>
-    <div style="display: flex;justify-content: center;align-items: flex-start;max-height: 100vh;">
-      <div class="panel" style="max-width: 350px;text-align: left;">
-        参数设置与说明：<br>
-        动画展开方式：
-        <select id="Animatemethod" style="font-size: 15px;text-align: center;border: 2px solid #a6edec;border-radius: 10px;background: rgba(0,0,0,0.5);color: #fff;">
-          <option value="0">无动画</option>
-          <option value="1">根中心向四周绘图</option>
-          <option value="2">全部根向四周绘图</option>
-        </select><br>
-        形状参量：<input id="a" value="1" size="5" style="border: 1px;border-radius: 10px;">
-        （平凡牛顿分形取1,a非1时忽略混沌区）<br>
-        多项式系数：<input id="coeffs" value="1,0,0,-1" size="15" style="border: 1px;border-radius: 10px;">
-        <button onclick="draw(Number(document.getElementById('Animatemethod').value))">绘制分形</button><br>
-        说明：系数按次数由高到低，以半角,分隔，如(x^3-1)输入1,0,0,-1，复数统一写作a+bi型，切忌输入“/”、空格等非法字符！<br>
-        下图为根中心的局部复平面，轴长：<input id="re_im" value="10" size="5" style="border: 1px;border-radius: 10px;"><br>
-        多项式次数越高，绘制制时间越长，请耐心等待（建议次数不超过<em>5</em>）
-      </div>
-      <div class='panel' style="max-width: 380px;text-align: left;">
-        牛顿分形简介：<br>
-        牛顿分形（Newton fractal）是将牛顿法应用于复多项式p(Z)而得到的复平面上的边界，是牛顿法所定义的亚纯函数z ↦ z − p(z)/p′(z)的朱利亚集。<br>
-        如果以一个开集中的任意点为初始点，迭代最终都收敛于某一根或循环，则该集合是这一牛顿迭代的法图集。一个法图集对应于一个根或循环。<br>
-        朱利亚集中的每个点都是每个法图集的一个聚点，进而导致了朱利亚集的分形结构。<br>
-        参考资料：<a href="https://www.wikiwand.com/en/articles/Newton_fractal" style="color: #a6edec;">Newton_fractal</a>
-      </div>
+</head>
+
+<body>
+  <h1
+    style="font-family: 'Dancing Script',cursive;font-size: 6em;text-align: center;color: snow;text-shadow: 2px 2px 4px #222,4px 4px 8px #888;">
+    Newton Fractal</h1>
+  <div style="display: flex;justify-content: center;align-items: flex-start;max-height: 100vh;">
+    <div class="panel" style="max-width: 350px;text-align: left;">
+      参数设置与说明：<br>
+      动画展开方式：
+      <select id="Animatemethod"
+        style="font-size: 15px;text-align: center;border: 2px solid #a6edec;border-radius: 10px;background: rgba(0,0,0,0.5);color: #fff;">
+        <option value="0">无动画</option>
+        <option value="1">根中心向四周绘图</option>
+        <option value="2">全部根向四周绘图</option>
+      </select><br>
+      形状参量：<input id="a" value="1" size="5" style="border: 1px;border-radius: 10px;">
+      （平凡牛顿分形取1,a非1时忽略混沌区）<br>
+      多项式系数：<input id="coeffs" value="1,0,0,-1" size="15" style="border: 1px;border-radius: 10px;">
+      <button onclick="draw(Number(document.getElementById('Animatemethod').value))">绘制分形</button><br>
+      说明：系数按次数由高到低，以半角,分隔，如(x^3-1)输入1,0,0,-1，复数统一写作a+bi型，切忌输入“/”、空格等非法字符！<br>
+      下图为根中心的局部复平面，轴长：<input id="re_im" value="10" size="5" style="border: 1px;border-radius: 10px;"><br>
+      多项式次数越高，绘制时间越长，请耐心等待（建议次数不超过<strong>5</strong>）
     </div>
-    <canvas id="fractal" width="500" height="500" style="width: 800px; height: 800px; border: 1px solid #ccc;"></canvas>
-    <script>
-      alert('次数过高或形状参量偏离1很远，程序极可能卡死，若长时间无响应，请手动终止！')
-      //可调参数与全局数值
-      const width=500,height=500;
-      const maxIter=100,tol=1e-6,rootTol=1e-5;
-      let re_min,re_max,im_min,im_max;
-      const cx=width/2,cy=height/2;
-      const speed=2;
-      const maxRadius=Math.sqrt(cx*cx,cy*cy);
-      let currentAnimId=null;
-      let a;
-      let max=maxIter;//动态调整迭代次数
-      //主体绘制
-      //n决定动画展开方式
-      function draw(k){
-        //终止上一步绘制
-        if(currentAnimId!==null){
-          cancelAnimationFrame(currentAnimId);
-          currentAnimId=null;
+    <div class='panel' style="max-width: 380px;text-align: left;">
+      牛顿分形简介：<br>
+      牛顿分形（Newton fractal）是将牛顿法应用于复多项式p(Z)而得到的复平面上的边界，是牛顿法所定义的亚纯函数z ↦ z − p(z)/p′(z)的朱利亚集。<br>
+      如果以一个开集中的任意点为初始点，迭代最终都收敛于某一根或循环，则该集合是这一牛顿迭代的法图集。一个法图集对应于一个根或循环。<br>
+      朱利亚集中的每个点都是每个法图集的一个聚点，进而导致了朱利亚集的分形结构。<br>
+      参考资料：<a href="https://en.wikipedia.org/wiki/Newton_fractal" style="color: #a6edec;">Newton_fractal</a>
+    </div>
+  </div>
+  <canvas id="fractal" width="800" height="800" style="width: 800px; height: 800px; border: 1px solid #ccc;"></canvas>
+  <script>
+    alert('次数过高或形状参量偏离1很远，程序极可能卡死，若长时间无响应，请手动终止！')
+    //可调参数与全局数值
+    const width = 800, height = 800;//与canvas统一
+    const maxIter = 100, tol = 1e-6, rootTol = 1e-5;//收敛判据
+    let re_min, re_max, im_min, im_max;
+    const cx = width / 2, cy = height / 2;
+    const speed = 2;//绘制速度
+    let workers = [];
+    const numWorkers = navigator.hardwareConcurrency;//worker数量，取决于性能
+    let currentAnimId = null;//检测绘制是否在运行中
+    let a;
+    let max = maxIter;//动态调整迭代次数
+    //主体绘制
+    //n决定动画展开方式
+    function draw(k) {
+      //终止上一步绘制
+      if (currentAnimId !== null) {
+        cancelAnimationFrame(currentAnimId);
+        currentAnimId = null;
+      }
+      //输入读取
+      let re_im = document.getElementById('re_im').value.trim();
+      let r_i = parseFloat(re_im) / 2;
+      if (!r_i || r_i <= 0) { alert('请输入正实数！'); }
+      re_min = -r_i;
+      re_max = r_i;
+      im_min = -r_i;
+      im_max = r_i;
+      let v = (re_max - re_min) / width;
+      let ptxt = document.getElementById('coeffs').value.trim();
+      let coeffs = ptxt.split(',').map(s => math.complex(s));
+      let pa = document.getElementById('a').value.trim();
+      a = math.complex(pa);
+      //处理a以使a!==1是有效判断
+      if (a.re === 1 && a.im === 0) { a = 1; }
+      //根存在预设与警告
+      if (coeffs.length < 2) {
+        alert('请勿输入常数多项式！');
+        return;
+      }
+      //牛顿法f与f'计算
+      let expr = ArrayToExpr(coeffs);
+      let f = math.compile(expr);
+      let df = math.derivative(expr, 'x').compile();
+      f.coeffs = coeffs;
+      let roots = Roots(f, df);//求多项式的根
+      let dis = 0;
+      let dis0;
+      let shadowmax = max / 4;
+      //a非1时有更松的收敛判定和更高的允许迭代次数
+      if (a !== 1) {
+        let q = distroot(roots);
+        dis = q / 6;
+        dis0 = q / 2;
+        max *= 5;
+        shadowmax *= 3;
+      }
+      //根中心及偏移计算
+      let c = center(roots);
+      let cr = math.re(c);
+      let ci = math.im(c);
+      //画布构建与上一次绘制清理
+      let canvas = document.getElementById('fractal');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.clearRect(0, 0, width, height);
+      let img;
+      let d0;
+      let rootsradius = Array.from({ length: height }, () => new Array(width).fill(0));
+      //像素点颜色记录（由worker完成）
+      let rootColors = Colors(roots.length);
+      //复数对象转化为数组
+      let rootsw = roots.map(s => [s.re, s.im]);
+      let coeffsw = coeffs.map(s => [s.re, s.im]);
+      let finished = 0;
+      let imgpieces = new Array(numWorkers);//分配img片段
+      //杀死上一次的worker
+      if (typeof workers !== 'undefined' && workers.length > 0) {
+        workers.forEach(worker => worker.terminate());
+      }
+      workers = [];
+      //构建worker
+      for (let w = 0; w < numWorkers; w++) {
+        const worker = new Worker('worker.js');
+        workers.push(worker);
+        const istar = Math.floor(w * height / numWorkers);
+        const iend = Math.floor((w + 1) * height / numWorkers);
+        //构建分形参数
+        const params = {
+          im_min: im_min, re_min: re_min, ci: ci, cr: cr, v: v, dis: dis, dis0: dis0, coeffsw: coeffsw, shadowmax: shadowmax,
+          max: max, rootsw: rootsw, rootColors: rootColors, pa: pa, k: k, tol: tol, rootTol: rootTol,
+          height: height, width: width, istar: istar, iend: iend
         }
-        //输入读取
-        let re_im=document.getElementById('re_im').value.trim();
-        let r_i=parseFloat(re_im)/2;
-        if(!r_i||r_i<=0){alert('请输入正实数！');}
-        re_min=-r_i;
-        re_max=r_i;
-        im_min=-r_i;
-        im_max=r_i;
-        let v=(re_max-re_min)/(width-1);
-        let ptxt=document.getElementById('coeffs').value.trim();
-        let coeffs=ptxt.split(',').map(s=>math.complex(s));
-        let pa=document.getElementById('a').value.trim();
-        a=math.complex(pa);
-        //处理a以使a!==1是有效判断
-        if(a.re===1&&a.im===0){a=1;}
-        //根存在预设与警告
-        if(coeffs.length<2){
-          alert('请勿输入常数多项式！');
-          return;
-        }
-        //牛顿法f与f'计算
-        let expr=ArrayToExpr(coeffs);
-        let f=math.compile(expr);
-        let df=math.derivative(expr,'x').compile();
-        f.coeffs=coeffs;
-        let roots=Roots(f,df);//求多项式的根
-        let dis=0;
-        let dis0;
-        //a非1时有更松的收敛判定和更高的允许迭代次数
-        if(a!==1){
-          let q=distroot(roots);
-          dis=q/6;
-          dis0=q/2;
-          max*=5;
-        }
-        //根中心及偏移计算
-        let c=center(roots);
-        let cr=math.re(c);
-        let ci=math.im(c);
-        //最远边界，方便终止判断
-        let border=[
-        math.complex(re_min+cr,im_min+ci),math.complex(re_min+cr,im_max+ci),
-        math.complex(re_max+cr,im_min+ci),math.complex(re_max+cr,im_max+ci)
-        ];
-        //画布构建与上一次绘制清理
-        let canvas=document.getElementById('fractal');
-        let ctx=canvas.getContext('2d');
-        ctx.clearRect(0, 0, width, height);
-        let img=ctx.createImageData(width,height);
-        //像素点颜色记录（包含牛顿法等准备工作）
-        let rootColors=Colors(roots.length);
-        let rootspoint=roots.map(root=>0);//保持根像素组长度
-        for(let i=0;i<height;i++){
-          let y=im_min+ci+i*v;
-          for(let j=0;j<width;j++){
-            let x=re_min+cr+j*v;
-            let z=math.complex(x,y);
-            let color=[255,255,255];//提前声明与混沌区颜色（白）
-            let n0=Newton(a,f,df,z,dis);//收敛根计算
-            let nr=check(dis0,roots,n0);//对应所收敛的根
-            if(valid(n0)){
-              //防止空数组读取！
-              if(nr!==-1){
-                color=rootColors[nr];
-              }
+        worker.postMessage(params);
+        //监听
+        worker.onmessage = (e) => {
+          imgpieces[w] = new ImageData(new Uint8ClampedArray(e.data.imgData), width, iend - istar);
+          finished++;
+          //全部完成后开始绘图
+          if (finished === numWorkers) {
+            workers.forEach(worker => worker.terminate());
+            const fullData = new Uint8ClampedArray(width * height * 4);
+            let offset = 0;
+            for (let p = 0; p < numWorkers; p++) {
+              fullData.set(imgpieces[p].data, offset);
+              offset += imgpieces[p].data.length;
             }
-            //标记根位置（黑色）
-            if(roots.some(r=>dist(z,r)<v)){
-              color=[0,0,0];
-              if(k===2&&nr!==-1&&rootspoint[nr]===0){rootspoint[nr]=[j,i];}//根像素记录，方便根展开判断
+            img = new ImageData(fullData, width, height);
+            if (k === 0) {
+              ctx.putImageData(img, 0, 0);
+              return;
             }
-            //像素点颜色赋予
-            let offset=4*(j+i*width);
-            img.data[offset]=color[0];
-            img.data[offset+1]=color[1];
-            img.data[offset+2]=color[2];
-            img.data[offset+3]=255;     
-          }
-        }
-        let currRadius=0;
-        let d0;
-        if(k===0){
-          ctx.putImageData(img,0,0);
-          return;
-        }
-        else if(k===1){d0=Math.sqrt(cx*cx+cy*cy);}//根中心绘制的边界判断
-        else{
-          let L=minmax(roots,border);
-          d0=L/vx;//一个比较宽的根展开绘制的终止范围（暂时没有简单且好的优化方法）
-        }
-        //动画实现（参数提前声明）
-        animatedraw(k,ctx,img,rootspoint,currRadius,d0,cr,ci);
-      }
-      //系数数组到多项式
-      function ArrayToExpr(c){
-        let expr='';//提取声明
-        for(let i=0;i<c.length;i++){
-          if(math.abs(c[i])<tol){continue;}
-          else{
-            expr+='+';//各项用+连接
-            expr+='('+c[i]+')';//将系数括起来防止复数报错
-            let e=(c.length-1-i)===0?'':(c.length-1-i)===1?'*x':`*x^${c.length-1-i}`;//各情况对x的形式要求
-            expr+=e;
-          }
-        }
-        expr=expr.slice(1);//去除第一项的+
-        return expr;
-      }
-      //牛顿法求极限
-      function Newton(b,f,df,z,dis){
-        for(let i=0;i<max;i++){
-          //计算f和f'在z处数值
-          let fz=f.evaluate({x:z});
-          let dfz=df.evaluate({x:z});
-          if(math.abs(dfz)<tol||!valid(z)){
-            return null;
-          }//防止无穷干扰计算
-          let m=math.divide(fz,dfz);
-          //收敛判断松紧依赖参数
-          if(b!==1&&valid(m)){
-            m=math.multiply(m,b);
-            if(math.abs(m)<dis){return z;}
-          }//对参数非1进行m的修饰
-          if(valid(m)){
-            z=math.subtract(z,m);
-            if(math.abs(m)<tol){return z;}
+            let currRadius = 0;
+            //动画实现（参数提前声明）
+            animatedraw(k, ctx, img, rootsradius, currRadius, d0, cr, ci);
           }
         }
       }
-      //数值方法求多项式的根（其实就是上述牛顿法）
-      function Roots(f,df){
-        let roots=[];//声明以放置root（动态数组）
-        let coe=2*re_max;
-        for(let i=0;i<maxIter;i++){
-          let z=math.complex(Math.random()*coe+re_min,Math.random()*coe+re_min);//随机选择初始点（略大于画布防止后面无法check）
-          let root=Newton(1,f,df,z,0);//根收敛判断必需紧
-          if(valid(root)&&!roots.some(r=>dist(root,r)<rootTol)){//重根判断必需放宽rootTol
-            roots.push(root);//加入不同的根
-          }
-          if(roots.length===f.coeffs.length-1){break;}//根据次数判断截止
-        }
-        return roots;
-      }
-      //运算定义良好（math.js可以处理）
-      function valid(z){
-        //排除无穷和未知
-        return z&&isFinite(math.re(z))&&isFinite(math.im(z))&&!isNaN(math.re(z))&&!isNaN(math.im(z));
-      }
-      //对应极限和已知解
-      function check(dis0,r,z){
-        if(!valid(z)){return null;}//返回不空
-        let i;
-        //判断z、极限收敛到根的对应数组位置
-        if(a!==1){i=r.findIndex(root=>dist(root,z)<dis0);}//a非1判断更宽
-        else{i=r.findIndex(root=>dist(root,z)<rootTol);}
-        if(i===-1){i=r.findIndex(root=>dist(root,z)<tol*10);}//对a为1，再次放宽以防误差
-        return i;
-      }
-      //复数距离
-      function dist(a,b){
-        if(valid(a)&&valid(b)){return math.abs(math.subtract(a,b));}//简化函数调用
-      }
-      //多项式根的中心
-      function center(roots){
-        if(roots.length===1){return roots[0];}
-        let sum=0;
-        for(let i=0;i<roots.length;i++){
-          sum=math.add(sum,roots[i]);//反复计算加法即可
-        }
-        let sm=math.divide(sum,roots.length);//平均
-        if(math.abs(sm)<tol){return 0;}//中心不动的避免小数值重复计算
-        return sm;
-      }
-      //根距估计
-      function distroot(roots){
-        let d=null;
-        //依次计算取最小
-        for(let i=0;i<roots.length;i++){
-          for(let j=i+1;j<roots.length;j++){
-            let dis=dist(roots[i],roots[j]);
-            if(d===null||dis<d){d=dis;}
+      //补全边界判断
+      if (k === 1) { d0 = Math.sqrt(cx * cx + cy * cy); }//根中心绘制的边界判断
+      else if (k === 2) {
+        let rootspoint = roots.map(root => [Math.floor((root.re - re_min) / v), Math.floor((root.im - im_min) / v)]);
+        //预存根距
+        for (let i = 0; i < height; i++) {
+          for (let j = 0; j < width; j++) {
+            let rootsxy = rootspoint.map(point => Math.sqrt((point[0] - j) ** 2 + (point[1] - i) ** 2));
+            rootsradius[i][j] = math.min(rootsxy);
           }
         }
-        return d;
+        d0 = math.max(rootsradius);
       }
-      //边界估计
-      function minmax(a,b){
-        //roots和bolder最大距离的最小值，大于实际最佳判定
-        let maxD=a.map(a=>math.max(b.map(b=>dist(a,b))));
-        let minmax=math.min(maxD);
-        return minmax;
-      }
-      //均匀取色
-      function Colors(n){
-        let Colors=[];
-        for(let i=0;i<n;i++){
-          let H=i/n;//均匀
-          let color=[rgb(H+1/3),rgb(H),rgb(H-1/3)];//色盘转化为rgb
-          Colors.push(color);
+    }
+    //系数数组到多项式
+    function ArrayToExpr(c) {
+      let expr = '';//提取声明
+      for (let i = 0; i < c.length; i++) {
+        if (math.abs(c[i]) < tol) { continue; }
+        else {
+          expr += '+';//各项用+连接
+          expr += '(' + c[i] + ')';//将系数括起来防止复数报错
+          let e = (c.length - 1 - i) === 0 ? '' : (c.length - 1 - i) === 1 ? '*x' : `*x^${c.length - 1 - i}`;//各情况对x的形式要求
+          expr += e;
         }
-        return Colors;
       }
-      //色盘转化为rgb（s取1，l取0.5，省略其他判断）
-      function rgb(t){
-        //调整t范围在[0,1)
-        if(t<0){
-          t+=1;
-          return rgb(t);
+      expr = expr.slice(1);//去除第一项的+
+      return expr;
+    }
+    //牛顿法求极限
+    function Newton(b, f, df, z, dis) {
+      let i;
+      for (i = 0; i < max; i++) {
+        //计算f和f'在z处数值
+        let fz = f.evaluate({ x: z });
+        let dfz = df.evaluate({ x: z });
+        if (math.abs(dfz) < tol || !valid(z) || i === max - 1) {
+          return null;
+        }//防止无穷干扰计算
+        let m = math.divide(fz, dfz);
+        //收敛判断松紧依赖参数
+        if (b !== 1 && valid(m)) {
+          m = math.multiply(m, b);
+          if (math.abs(m) < dis) { return [z, i]; }
+        }//对参数非1进行m的修饰
+        if (valid(m)) {
+          z = math.subtract(z, m);
+          if (math.abs(m) < tol) { return [z, i]; }
         }
-        else if(t>1){
-          t-=1;
-          return rgb(t)
-        }
-        if(t<1/6){t*=6;}
-        else if(t>=1/6&&t<1/2){t=1;}
-        else if(t>=1/2&&t<2/3){t=4-6*t;}
-        else{t=0;}
-        return Math.round(255*t);//规范化取整
       }
-      //动画演示（逐帧图绘）
-      function animatedraw(k,ctx,img,rootspoint,currRadius,d0,cr,ci){
-        if(currRadius===0){ctx.createImageData(width,height);}//第一次进入构建画布
-        //取画布数据，规避重复涂染
-        let imganimate=ctx.getImageData(0,0,width,height);
-        let Data=imganimate.data;
-        for(let i=0;i<height;i++){
-          for(let j=0;j<width;j++){
-            let r;
-            //r判定处理
-            if(k===1){
-              let dx=j-cx;
-              let dy=i-cy;
-              r=Math.sqrt(dx*dx+dy*dy);
-            }
-            else{
-              //这里取最小距离，简化计算
-              let rootsxy=rootspoint.map(point=>Math.sqrt((point[0]-j)*(point[0]-j)+(point[1]-i)*(point[1]-i)));
-              r=math.min(rootsxy);
-            }
-            //仅涂染环区
-            if(r>=currRadius&&r<currRadius+speed){
-              let off=4*(j+i*width);
-              Data[off]=img.data[off];
-              Data[off+1]=img.data[off+1];
-              Data[off+2]=img.data[off+2];
-              Data[off+3]=img.data[off+3];
-            }
+    }
+    //数值方法求多项式的根（其实就是上述牛顿法）
+    function Roots(f, df) {
+      let roots = [];//声明以放置root（动态数组）
+      let coe = 2 * re_max;
+      for (let i = 0; i < maxIter; i++) {
+        let z = math.complex(Math.random() * coe + re_min, Math.random() * coe + re_min);//随机选择初始点（略大于画布防止后面无法check）
+        let root = Newton(1, f, df, z, 0)[0];//根收敛判断必需紧
+        if (valid(root) && !roots.some(r => dist(root, r) < rootTol)) {//重根判断必需放宽rootTol
+          roots.push(root);//加入不同的根
+        }
+        if (roots.length === f.coeffs.length - 1) { break; }//根据次数判断截止
+      }
+      return roots;
+    }
+    //运算定义良好（math.js可以处理）
+    function valid(z) {
+      //排除无穷和未知
+      return z && isFinite(math.re(z)) && isFinite(math.im(z)) && !isNaN(math.re(z)) && !isNaN(math.im(z));
+    }
+    //对应极限和已知解
+    function check(dis0, r, z) {
+      if (!valid(z)) { return null; }//返回不空
+      let i;
+      //判断z、极限收敛到根的对应数组位置
+      if (a !== 1) { i = r.findIndex(root => dist(root, z) < dis0); }//a非1判断更宽
+      else { i = r.findIndex(root => dist(root, z) < rootTol); }
+      if (i === -1) { i = r.findIndex(root => dist(root, z) < tol * 10); }//对a为1，再次放宽以防误差
+      return i;
+    }
+    //复数距离
+    function dist(a, b) {
+      if (valid(a) && valid(b)) { return math.abs(math.subtract(a, b)); }//简化函数调用
+    }
+    //多项式根的中心
+    function center(roots) {
+      if (roots.length === 1) { return roots[0]; }
+      let sum = 0;
+      for (let i = 0; i < roots.length; i++) {
+        sum = math.add(sum, roots[i]);//反复计算加法即可
+      }
+      let sm = math.divide(sum, roots.length);//平均
+      if (math.abs(sm) < tol) { return 0; }//中心不动的避免小数值重复计算
+      return sm;
+    }
+    //根距估计
+    function distroot(roots) {
+      let d = null;
+      //依次计算取最小
+      for (let i = 0; i < roots.length; i++) {
+        for (let j = i + 1; j < roots.length; j++) {
+          let dis = dist(roots[i], roots[j]);
+          if (d === null || dis < d) { d = dis; }
+        }
+      }
+      return d;
+    }
+    //均匀取色
+    function Colors(n) {
+      let Colors = [];
+      for (let i = 0; i < n; i++) {
+        let H = i / n;//均匀
+        let color = [rgb(H + 1 / 3), rgb(H), rgb(H - 1 / 3)];//色盘转化为rgb
+        Colors.push(color);
+      }
+      return Colors;
+    }
+    //色盘转化为rgb（s取1，l取0.5，根据标准转换方法做一定简化）
+    function rgb(t) {
+      //调整t范围在[0,1)
+      if (t < 0) {
+        t += 1;
+        return rgb(t);
+      }
+      else if (t > 1) {
+        t -= 1;
+        return rgb(t)
+      }
+      if (t < 1 / 6) { t *= 6; }
+      else if (t >= 1 / 6 && t < 1 / 2) { t = 1; }
+      else if (t >= 1 / 2 && t < 2 / 3) { t = 4 - 6 * t; }
+      else { t = 0; }
+      return t;
+    }
+    //动画演示（逐帧图绘）
+    function animatedraw(k, ctx, img, rootsradius, currRadius, d0, cr, ci) {
+      if (currRadius === 0) { ctx.createImageData(width, height); }//第一次进入构建画布
+      //取画布数据，规避重复涂染
+      let imganimate = ctx.getImageData(0, 0, width, height);
+      let Data = imganimate.data;
+      for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
+          let r;
+          //r判定处理
+          if (k === 1) {
+            let dx = j - cx;
+            let dy = i - cy;
+            r = Math.sqrt(dx * dx + dy * dy);
+          }
+          else {
+            //这里取最小距离
+            r = rootsradius[i][j];
+          }
+          //仅涂染环区
+          if (r >= currRadius && r < currRadius + speed) {
+            let offset = 4 * (j + i * width);
+            Data[offset] = img.data[offset];
+            Data[offset + 1] = img.data[offset + 1];
+            Data[offset + 2] = img.data[offset + 2];
+            Data[offset + 3] = img.data[offset + 3];
           }
         }
-        //画布展开
-        ctx.putImageData(imganimate,0,0);
-        if(currRadius<d0){
-          //再次调用
-          currentAnimId=requestAnimationFrame(()=>animatedraw(k,ctx,img,rootspoint,currRadius+speed,d0,cr,ci));//流畅图绘，currentAnimId表示运行态
-        }
       }
-    </script>
-    <footer style="text-align: left;
+      //画布展开
+      ctx.putImageData(imganimate, 0, 0);
+      if (currRadius < d0) {
+        //再次调用
+        currentAnimId = requestAnimationFrame(() => animatedraw(k, ctx, img, rootsradius, currRadius + speed, d0, cr, ci));//流畅图绘，currentAnimId表示运行态
+      }
+    }
+  </script>
+  <footer style="text-align: left;
       font-style: italic;
       color: snow;
       border: 2px solid #ccc;
@@ -345,14 +375,19 @@
       padding: 24px;
       margin: 18px auto 0 auto;
       width: 850px;">
-      致谢：<br>
-      感谢3Blue1Brown关于牛顿分形的视频<a href="https://www.bilibili.com/video/BV1HQ4y1q78v/" style="color: #fff;">【官方双语】（牛顿本人都不知道的）牛顿分形</a>，使我了解牛顿分形并产生兴趣，于是有了这个项目；<br>
-      感谢<a href="https://developer.mozilla.org/zh-CN/" style="color: #fff;">MDN</a>在html,CSS和script的基础编程规范和部分用例指导，对我这个零基础初学者十分友善；<br>
-      感谢<a href="https://mathjs.org/" style="color: #fff;">math.js</a>的开源数学函数库，帮助解决了项目中许多复杂的数学计算；<br>
-      感谢chatGPT在CSS渲染的指导、canvas和animation等框架的解惑与debug解决等诸多方面的帮助和建议，使我在项目中学习；<br>
-      牛顿分形的介绍文本来源于<a href="https://www.wikiwand.com/en/articles/Newton_fractal" style="color: #fff;">Wikiwand</a>，感谢资料参考；<br>
-      部分字体由Google Fonts提供，感谢<a href="https://fonts.google.com/specimen/Dancing+Script?query=Dancing+Script" style="color: #fff;">Dancing Script</a>的设计师Impallari Type；<br>
-      背景图片来源于google.es，具体出处已不可考，该图片仅供由学习使用，版权仍归版权方所有，感谢图片创作者。
-      </footer>
-    </body>
+    <strong>致谢</strong>：<br>
+    感谢3Blue1Brown关于牛顿分形的视频<a href="https://www.bilibili.com/video/BV1HQ4y1q78v/"
+      style="color: #fff;">【官方双语】（牛顿本人都不知道的）牛顿分形</a>，使我了解牛顿分形并产生兴趣，于是有了这个项目；<br>
+    感谢<a href="https://developer.mozilla.org/zh-CN/"
+      style="color: #fff;">MDN</a>在html,CSS和script的基础编程规范和部分用例指导，对我这个零基础初学者十分友善；<br>
+    感谢<a href="https://mathjs.org/" style="color: #fff;">math.js</a>的开源数学函数库，帮助解决了项目中许多复杂的数学计算；<br>
+    感谢chatGPT在CSS渲染的指导、canvas和animation等框架的解惑与debug解决等诸多方面的帮助和建议，特别是worker的构建，使我在项目中学习；<br>
+    牛顿分形的介绍文本来源于<a href="https://en.wikipedia.org/wiki/Newton_fractal" style="color: #fff;">Wikipedia</a>，感谢资料参考；<br>
+    部分字体由Google Fonts提供，感谢<a href="https://fonts.google.com/specimen/Dancing+Script?query=Dancing+Script"
+      style="color: #fff;">Dancing Script</a>的设计师Impallari Type；<br>
+    网站图标源自Wikipedia <a href="https://commons.wikimedia.org/wiki/File:Mnfrac1.png" style="color: #fff;">Asympt</a>(Public
+    domain, via Wikimedia Commons)，背景图片来源于google.es，具体出处已不可考，该图片仅供由学习使用，版权仍归版权方所有，感谢图片提供。
+  </footer>
+</body>
+
 </html>
