@@ -1,9 +1,5 @@
-Acknowledgments:
-
-Special thanks to 3Blue1Brown’s video on Newton Fractals ([official bilingual version] "The Newton Fractal, a discovery Newton never knew") for introducing me to Newton Fractals and sparking my interest, which led to this project.
-My gratitude to MDN for providing beginner-friendly standards and examples in HTML, CSS, and JavaScript, which have been invaluable to me as a complete beginner.
-Thanks to the open-source math.js library, which helped solve many complex mathematical computations in this project.
-I am grateful to ChatGPT for guidance on CSS rendering, explanations of canvas and animation frameworks, debugging, and many suggestions that supported my learning during this project.
-The introduction to Newton Fractals is based on text from Wikiwand; thank you for the reference material.
-Some fonts are provided by Google Fonts; many thanks to Impallari Type for designing Dancing Script.
-The background image is sourced from google.es; the specific origin is unknown and the image is used here for educational purposes only. Copyright remains with the original creator, whom I would like to thank.
+本项目基于 MIT 协议开源；
+本项目实现牛顿分形的绘制功能，支持自主输入多项式系数等，计算由CPU多线程并行完成，取计算机最大核数目；
+可自行更改canva像素数实现高分辨渲染或转webGL实现，性能有限可更改worker数量；
+进阶考虑复数域的全纯函数的迭代不动点或周期点导致的分形图案，可对Newton函数部分做相应更改调试；
+为实现代码高性能高耦合，许多函数分立性很差，变量意义不明确，阅读不便尽情谅解ε(┬┬﹏┬┬)3
