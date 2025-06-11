@@ -161,24 +161,29 @@
       }
       //牛顿法f与f'计算
       let expr = ArrayToExpr(coeffs);
+      let deg = expr.length - 1;
       let f = math.compile(expr);
-      let df = math.derivative(expr, 'x').compile();
-      f.coeffs = coeffs;
+      let dexpr = math.derivative(expr, 'x').toString();
+      let df = math.compile(dexpr);
+      let rf = f;
+      let drf = df;
       let dis = 0;
       let dis0 = rootTol;
       let shadowmax = Math.floor(max / 4);
       if (c !== 0) {
-        //均为经验性调整
-        if (a === 1) {
-          dis = 1e-3;
-          dis0 = 1e-2;
-        }
-        else {
-          dis = 0.05;
-          dis0 = 0.5;
-        }
+        let astr = a.toString();
+        let cstr = c.toString();
+        let rexpr = `(${astr})*(${expr})-(${c})*(${dexpr})`;
+        rf = math.compile(rexpr);
+        let drexpr = math.derivative(rexpr, 'x').toString();
+        drf = math.compile(drexpr);
       }
-      let roots = Roots(a, c, f, df, dis, dis0);//求多项式的根
+      if (c !== 0) {
+        //均为经验性调整
+        dis = 1e-3;
+        dis0 = 1e-2;
+      }
+      let roots = Roots(rf, drf, deg);//求多项式的根
       console.log(roots);
       //a非1时有更松的收敛判定和更高的允许迭代次数
       if (a !== 1) {
@@ -186,7 +191,7 @@
         dis = q / 6;
         dis0 = q / 2;
         max *= 5;
-        shadowmax *= 3;
+        shadowmax *= 2;
       }
       //根中心及偏移计算
       let c_c = center(roots);
@@ -289,45 +294,35 @@
       expr = expr.slice(1);//去除第一项的+（AI的方法指导）
       return expr;
     }
-    //牛顿法求极限
-    function Newton(b, d, f, df, z, dis) {
+    //牛顿法求极限（只用计算根，不必麻烦）
+    function Newton(f, df, z) {
       let i;
-      for (i = 0; i < max; i++) {
+      for (i = 0; i < maxIter; i++) {
         //计算f和f'在z处数值
         let fz = f.evaluate({ x: z });
         let dfz = df.evaluate({ x: z });
-        if (!valid(z) || (math.abs(dfz) < tol && math.abs(fz) > tol) || i === max - 1) {
+        if (!valid(z) || (math.abs(dfz) < tol && math.abs(fz) > tol) || i === maxIter - 1) {
           return null;
         }//防止无穷干扰计算
         let m = math.divide(fz, dfz);
-        //收敛判断松紧依赖参数
-        if (b !== 1 && valid(m)) {
-          m = math.multiply(m, b);
-          if (d === 0 && math.abs(m) < dis) { return z; }
-        }//对参数非1进行m的修饰
         if (valid(m)) {
           z = math.subtract(z, m);
-          if (d !== 0) {
-            z = math.add(z, d);
-            if (math.abs(math.subtract(m, d)) < dis) { return z; }
-          }
-          else if (math.abs(m) < tol) { return z; }
+          if (math.abs(m) < tol) { return z; }
         }
       }
     }
     //数值方法求多项式的根（其实就是上述牛顿法）
-    function Roots(b, d, f, df, dis, dis0) {
+    function Roots(f, df, deg) {
       let roots = [];//声明以放置root（动态数组）
       let coe = 2 * re_max;
       for (let i = 0; i < maxIter; i++) {
         let z = math.complex(Math.random() * coe + re_min, Math.random() * coe + re_min);//随机选择初始点（略大于画布防止后面无法check）
         let root;
-        if (d === 0) { root = Newton(1, 0, f, df, z, 0); }//根收敛判断必需紧
-        else { root = Newton(b, d, f, df, z, dis); }
-        if (valid(root) && !roots.some(r => dist(root, r) < dis0)) {//重根判断必需放宽rootTol
+        root = Newton(f, df, z); //根收敛判断必需紧
+        if (valid(root) && !roots.some(r => dist(root, r) < rootTol)) {//重根判断必需放宽rootTol
           roots.push(root);//加入不同的根
         }
-        if (roots.length === f.coeffs.length - 1) { break; }//根据次数判断截止
+        if (roots.length === deg) { break; }//根据次数判断截止
       }
       return roots;
     }
@@ -336,16 +331,6 @@
     function valid(z) {
       //排除无穷和未知
       return z && isFinite(math.re(z)) && isFinite(math.im(z)) && !isNaN(math.re(z)) && !isNaN(math.im(z));
-    }
-    //对应极限和已知解
-    function check(dis0, r, z) {
-      if (!valid(z)) { return null; }//返回不空
-      let i;
-      //判断z、极限收敛到根的对应数组位置
-      if (a !== 1) { i = r.findIndex(root => dist(root, z) < dis0); }//a非1判断更宽
-      else { i = r.findIndex(root => dist(root, z) < rootTol); }
-      if (i === -1) { i = r.findIndex(root => dist(root, z) < tol * 10); }//对a为1，再次放宽以防误差
-      return i;
     }
     //复数距离
     function dist(a, b) {
@@ -508,7 +493,7 @@
         Fractal）</a>；<br>
       本地调试可提高分辨率（Canvas的长宽），设置更大的迭代次数上限（maxIter）和更紧的收敛判据（tol），得到更精确的分形图案，当然运行时间会更长，而且达到迭代上限的点基本不收敛，调整意义不大；<br>
       进阶的可以尝试将多项式换成复数域的全纯函数进行迭代计算分形（通过改变Newton函数实现），很多点会收敛到不动点附近，也存在收敛到有限区域内或者发散的点，分形绘制方式自行决定（一般取收敛与否或收敛迭代次数）；<br>
-      若你对分形兴趣十足，不妨试试用webGL是实现实时分形渲染，这也是更常用的方法，祝你好运！ο(=•ω＜=)ρ⌒☆
+      若你对分形兴趣十足，不妨试试用webGL实现实时分形渲染，这也是更常用的方法，祝你好运！ο(=•ω＜=)ρ⌒☆
     </div>
   </footer>
 </body>
