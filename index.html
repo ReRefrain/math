@@ -97,19 +97,25 @@
     const maxIter = 100, tol = 1e-6, rootTol = 1e-5;//收敛判据
     let re_min, re_max, im_min, im_max;
     const cx = width / 2, cy = height / 2;
-    let speed;//绘制速度
+    let speed = 1;//绘制速度
     let workers = [];
     const numWorkers = navigator.hardwareConcurrency;//worker数量，取决于性能
     let currentAnimId = null;//检测绘制是否在运行中
+    let imgpieces = new Array(numWorkers);//分配img片段
     let a, c;
+    let re_im, ptxt, pa, pc;
+    let finished = 0;
+    let d0, cr, ci;
     let max = maxIter;//动态调整迭代次数
+    let rootsradius = Array.from({ length: height }, () => new Array(width).fill(0));
+    let fullShader = new Float32Array(width * height);
     //speed赋值
     const speedInput = document.getElementById('speed');
     const speedValue = document.getElementById('speedValue');
-    speed = parseFloat(speedInput.value);
     //更新显示（AI推荐方法，较speedValue.innerHTML显示更高效安全）
     speedInput.addEventListener('input', () => {
       speedValue.textContent = speedInput.value;
+      speed = parseFloat(speedInput.value);
     });
     //终止计算和绘制
     function stop() {
@@ -129,145 +135,165 @@
     //主体绘制
     //n决定动画展开方式
     function draw(k) {
+      //防止未通过stop暂停计算，使worker仍在消耗占用
+      if (finished !== numWorkers) { stop(); }
       //终止上一步绘制（终止方法由AI指导）
       if (currentAnimId !== null) {
         cancelAnimationFrame(currentAnimId);
         currentAnimId = null;
       }
-      //重置参数
-      max = maxIter;
-      //输入读取
-      let re_im = document.getElementById('re_im').value.trim();
-      let r_i = parseFloat(re_im) / 2;
-      if (!r_i || r_i <= 0) { alert('请输入正实数！'); }
-      re_min = -r_i;
-      re_max = r_i;
-      im_min = -r_i;
-      im_max = r_i;
-      let v = (re_max - re_min) / width;
-      let ptxt = document.getElementById('coeffs').value.trim();
-      let coeffs = ptxt.split(',').map(s => math.complex(s));
-      let pa = document.getElementById('a').value.trim();
-      a = math.complex(pa);
-      let pc = document.getElementById('c').value.trim();
-      c = math.complex(pc);
-      if (c.re === 0 && c.im === 0) { c = 0; }
-      //处理a以使a!==1是有效判断
-      if (a.re === 1 && a.im === 0) { a = 1; }
-      //根存在预设与警告
-      if (coeffs.length < 2) {
-        alert('请勿输入常数多项式！');
-        return;
-      }
-      //牛顿法f与f'计算
-      let expr = ArrayToExpr(coeffs);
-      let deg = expr.length - 1;
-      let f = math.compile(expr);
-      let dexpr = math.derivative(expr, 'x').toString();
-      let df = math.compile(dexpr);
-      let rf = f;
-      let drf = df;
-      let dis = 0;
-      let dis0 = rootTol;
-      let shadowmax = Math.floor(max / 4);
-      if (c !== 0) {
-        let astr = a.toString();
-        let cstr = c.toString();
-        let rexpr = `(${astr})*(${expr})-(${c})*(${dexpr})`;
-        rf = math.compile(rexpr);
-        let drexpr = math.derivative(rexpr, 'x').toString();
-        drf = math.compile(drexpr);
-      }
-      if (c !== 0) {
-        //均为经验性调整
-        dis = 1e-3;
-        dis0 = 1e-2;
-      }
-      let roots = Roots(rf, drf, deg);//求多项式的根
-      console.log(roots);
-      //a非1时有更松的收敛判定和更高的允许迭代次数
-      if (a !== 1) {
-        let q = distroot(roots);
-        dis = q / 6;
-        dis0 = q / 2;
-        max *= 5;
-        shadowmax *= 2;
-      }
-      //根中心及偏移计算
-      let c_c = center(roots);
-      let cr = math.re(c_c);
-      let ci = math.im(c_c);
       //画布构建与上一次绘制清理
       let canvas = document.getElementById('fractal');
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.clearRect(0, 0, width, height);
-      let img;
-      let d0;
-      let rootsradius = Array.from({ length: height }, () => new Array(width).fill(0));
-      let fullShader = new Float32Array(width * height);
-      //像素点颜色记录（由worker完成）
-      let rootColors = Colors(roots.length);
-      //复数对象转化为数组
-      let rootsw = roots.map(s => [s.re, s.im]);
-      let coeffsw = coeffs.map(s => [s.re, s.im]);
-      let finished = 0;
-      let imgpieces = new Array(numWorkers);//分配img片段
-      //杀死上一次的worker
-      if (typeof workers !== 'undefined' && workers.length > 0) {
+      //只改变动画类型
+      if (re_im === document.getElementById('re_im').value.trim() &&
+        ptxt === document.getElementById('coeffs').value.trim() &&
+        pa === document.getElementById('a').value.trim() &&
+        pc === document.getElementById('c').value.trim() &&
+        finished === numWorkers) {
         workers.forEach(worker => worker.terminate());
-      }
-      workers = [];
-      //构建worker（worker框架构建由AI完成，具体部分本人实现）
-      for (let w = 0; w < numWorkers; w++) {
-        let worker = new Worker('worker.js');
-        workers.push(worker);
-        const istar = Math.floor(w * height / numWorkers);
-        const iend = Math.floor((w + 1) * height / numWorkers);
-        //构建分形参数
-        const params = {
-          im_min: im_min, re_min: re_min, ci: ci, cr: cr, v: v, dis: dis, dis0: dis0, coeffsw: coeffsw, shadowmax: shadowmax,
-          max: max, rootsw: rootsw, rootColors: rootColors, pa: pa, pc: pc, tol: tol, rootTol: rootTol, k: k,
-          height: height, width: width, istar: istar, iend: iend, w: w, numWorkers: numWorkers
+        loader(0);
+        const fullData = new Uint8ClampedArray(width * height * 4);
+        let offset = 0;
+        for (let p = 0; p < numWorkers; p++) {
+          fullData.set(imgpieces[p].data, offset);
+          offset += imgpieces[p].data.length;
         }
-        worker.postMessage(params);
-        //监听
-        worker.onmessage = (e) => {
-          if ('process' in e.data) {
-            loader(e.data.process);
-          }
-          if ('imgData' in e.data && e.data.imgData && e.data.imgData.byteLength) {
-            imgpieces[w] = new ImageData(
-              new Uint8ClampedArray(e.data.imgData), width, iend - istar
-            );
-            if ('shaderData' in e.data && e.data.shaderData) {
-              fullShader.set(new Float32Array(e.data.shaderData), istar * width);
-            }
-            finished++;
-          }
-          //全部完成后开始绘图
-          if (finished === numWorkers) {
-            workers.forEach(worker => worker.terminate());
-            loader(0);
-            const fullData = new Uint8ClampedArray(width * height * 4);
-            let offset = 0;
-            for (let p = 0; p < numWorkers; p++) {
-              fullData.set(imgpieces[p].data, offset);
-              offset += imgpieces[p].data.length;
-            }
-            img = new ImageData(fullData, width, height);
-            if (k === 0) {
-              ctx.putImageData(img, 0, 0);
-              return;
-            }
-            let currRadius = 0;
-            //动画实现（参数提前声明）
-            animatedraw(k, ctx, img, rootsradius, currRadius, fullShader, d0, cr, ci);
-          }
+        let img = new ImageData(fullData, width, height);
+        if (k === 0) {
+          ctx.putImageData(img, 0, 0);
+          return;
         }
+        let currRadius = 0;
+        if (k === 1 || k === 3) { d0 = Math.sqrt(cx * cx + cy * cy); }//根中心绘制的边界判断
+        else { d0 = math.max(rootsradius); }
+        //动画实现（参数提前声明）
+        animatedraw(k, ctx, img, rootsradius, currRadius, fullShader, d0, cr, ci);
       }
-      //补全边界判断
-      if (k === 1 || k === 3) { d0 = Math.sqrt(cx * cx + cy * cy); }//根中心绘制的边界判断
       else {
+        //重置参数
+        max = maxIter;
+        finished = 0;
+        //输入读取
+        re_im = document.getElementById('re_im').value.trim();
+        let r_i = parseFloat(re_im) / 2;
+        if (!r_i || r_i <= 0) { alert('请输入正实数！'); }
+        re_min = -r_i;
+        re_max = r_i;
+        im_min = -r_i;
+        im_max = r_i;
+        let v = (re_max - re_min) / width;
+        ptxt = document.getElementById('coeffs').value.trim();
+        let coeffs = ptxt.split(',').map(s => math.complex(s));
+        pa = document.getElementById('a').value.trim();
+        a = math.complex(pa);
+        pc = document.getElementById('c').value.trim();
+        c = math.complex(pc);
+        if (c.re === 0 && c.im === 0) { c = 0; }
+        //处理a以使a!==1是有效判断
+        if (a.re === 1 && a.im === 0) { a = 1; }
+        //根存在预设与警告
+        if (coeffs.length < 2) {
+          alert('请勿输入常数多项式！');
+          return;
+        }
+        //牛顿法f与f'计算
+        let expr = ArrayToExpr(coeffs);
+        let deg = expr.length - 1;
+        let f = math.compile(expr);
+        let dexpr = math.derivative(expr, 'x').toString();
+        let df = math.compile(dexpr);
+        let rf = f;
+        let drf = df;
+        let dis = 0;
+        let dis0 = rootTol;
+        let shadowmax = Math.floor(max / 4);
+        if (c !== 0) {
+          let astr = a.toString();
+          let cstr = c.toString();
+          let rexpr = `(${astr})*(${expr})-(${c})*(${dexpr})`;
+          rf = math.compile(rexpr);
+          let drexpr = math.derivative(rexpr, 'x').toString();
+          drf = math.compile(drexpr);
+        }
+        if (c !== 0) {
+          //均为经验性调整
+          dis = 1e-3;
+          dis0 = 1e-2;
+        }
+        let roots = Roots(rf, drf, deg);//求多项式的根
+        console.log(roots);
+        //a非1时有更松的收敛判定和更高的允许迭代次数
+        if (a !== 1) {
+          let q = distroot(roots);
+          dis = q / 6;
+          dis0 = q / 2;
+          max *= 5;
+          shadowmax *= 2;
+        }
+        //根中心及偏移计算
+        let c_c = center(roots);
+        cr = math.re(c_c);
+        ci = math.im(c_c);
+        //像素点颜色记录（由worker完成）
+        let rootColors = Colors(roots.length);
+        //复数对象转化为数组
+        let rootsw = roots.map(s => [s.re, s.im]);
+        let coeffsw = coeffs.map(s => [s.re, s.im]);
+        //杀死上一次的worker
+        if (typeof workers !== 'undefined' && workers.length > 0) {
+          workers.forEach(worker => worker.terminate());
+        }
+        workers = [];
+        //构建worker（worker框架构建由AI完成，具体部分本人实现）
+        for (let w = 0; w < numWorkers; w++) {
+          let worker = new Worker('worker.js');
+          workers.push(worker);
+          const istar = Math.floor(w * height / numWorkers);
+          const iend = Math.floor((w + 1) * height / numWorkers);
+          //构建分形参数
+          const params = {
+            im_min: im_min, re_min: re_min, ci: ci, cr: cr, v: v, dis: dis, dis0: dis0, coeffsw: coeffsw, shadowmax: shadowmax,
+            max: max, rootsw: rootsw, rootColors: rootColors, pa: pa, pc: pc, tol: tol, rootTol: rootTol, k: k,
+            height: height, width: width, istar: istar, iend: iend, w: w, numWorkers: numWorkers
+          }
+          worker.postMessage(params);
+          //监听
+          worker.onmessage = (e) => {
+            if ('process' in e.data) {
+              loader(e.data.process);
+            }
+            if ('imgData' in e.data && e.data.imgData && e.data.imgData.byteLength) {
+              imgpieces[w] = new ImageData(
+                new Uint8ClampedArray(e.data.imgData), width, iend - istar
+              );
+              if ('shaderData' in e.data && e.data.shaderData) {
+                fullShader.set(new Float32Array(e.data.shaderData), istar * width);
+              }
+              finished++;
+            }
+            //全部完成后开始绘图
+            if (finished === numWorkers) {
+              workers.forEach(worker => worker.terminate());
+              loader(0);
+              const fullData = new Uint8ClampedArray(width * height * 4);
+              let offset = 0;
+              for (let p = 0; p < numWorkers; p++) {
+                fullData.set(imgpieces[p].data, offset);
+                offset += imgpieces[p].data.length;
+              }
+              let img = new ImageData(fullData, width, height);
+              if (k === 0) {
+                ctx.putImageData(img, 0, 0);
+                return;
+              }
+              let currRadius = 0;
+              //动画实现（参数提前声明）
+              animatedraw(k, ctx, img, rootsradius, currRadius, fullShader, d0, cr, ci);
+            }
+          }
+        }
         let rootspoint = roots.map(root => [Math.floor((root.re - re_min) / v), Math.floor((root.im - im_min) / v)]);
         //预存根距
         for (let i = 0; i < height; i++) {
@@ -276,7 +302,9 @@
             rootsradius[i][j] = math.min(rootsxy);
           }
         }
-        d0 = math.max(rootsradius);
+        //补全边界判断
+        if (k === 1 || k === 3) { d0 = Math.sqrt(cx * cx + cy * cy); }//根中心绘制的边界判断
+        else { d0 = math.max(rootsradius); }
       }
     }
     //系数数组到多项式
@@ -393,6 +421,7 @@
       //取画布数据，规避重复涂染
       let imganimate = ctx.getImageData(0, 0, width, height);
       let Data = imganimate.data;
+      let currentspeed = speed;
       for (let i = 0; i < height; i++) {
         for (let j = 0; j < width; j++) {
           let r;
@@ -410,7 +439,7 @@
             r *= fullShader[i * width + j];
           }
           //仅涂染环区
-          if (r >= currRadius && r < currRadius + speed) {
+          if (r >= currRadius && r < currRadius + currentspeed) {
             let offset = 4 * (j + i * width);
             Data[offset] = img.data[offset];
             Data[offset + 1] = img.data[offset + 1];
@@ -423,7 +452,7 @@
       ctx.putImageData(imganimate, 0, 0);
       if (currRadius < d0) {
         //再次调用（该动画实现方法由AI指导完成）
-        currentAnimId = requestAnimationFrame(() => animatedraw(k, ctx, img, rootsradius, currRadius + speed, fullShader, d0, cr, ci));//流畅图绘，currentAnimId表示运行态
+        currentAnimId = requestAnimationFrame(() => animatedraw(k, ctx, img, rootsradius, currRadius + currentspeed, fullShader, d0, cr, ci));//流畅图绘，currentAnimId表示运行态
       }
     }
     //进度条（一些比较奇怪的用法，除颜色赋予和部分参数调整，其余均为AI实现）
@@ -488,14 +517,17 @@
     </ul>
     <p></p>
     <div style="font-style: inherit;">
-      碎碎念：<br>
-      主体代码及worker.js放在本人简陋的github上<a href="https://github.com/ReRefrain/math" style="color: #fff;">（Newton
-        Fractal）</a>；<br>
+      附言：<br>
+      主体代码及worker.js放在本人简陋的github上<a href="https://github.com/ReRefrain/math"
+        style="color: #fff;">（NewtonFractal）</a>；<br>
       本地调试可提高分辨率（Canvas的长宽），设置更大的迭代次数上限（maxIter）和更紧的收敛判据（tol），得到更精确的分形图案，当然运行时间会更长，而且达到迭代上限的点基本不收敛，调整意义不大；<br>
       进阶的可以尝试将多项式换成复数域的全纯函数进行迭代计算分形（通过改变Newton函数实现），很多点会收敛到不动点附近，也存在收敛到有限区域内或者发散的点，分形绘制方式自行决定（一般取收敛与否或收敛迭代次数）；<br>
       若你对分形兴趣十足，不妨试试用webGL实现实时分形渲染，这也是更常用的方法，祝你好运！ο(=•ω＜=)ρ⌒☆
     </div>
   </footer>
+</body>
+
+</html>
 </body>
 
 </html>
