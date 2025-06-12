@@ -2,7 +2,7 @@ importScripts("https://unpkg.com/mathjs@14.5.0/lib/browser/math.js")
 onmessage = function (e) {
     const {
         im_min, re_min, ci, cr, v, dis, dis0, coeffsw, shadowmax,
-        max, rootsw, rootColors, pa, pc, tol, rootTol, k,
+        max, rootsw, rootColors, pa, pc, tol, rootTol,
         height, width, istar, iend, w, numWorkers
     } = e.data;
     //复数对象变换
@@ -33,7 +33,7 @@ onmessage = function (e) {
                 let n0 = N0[0];
                 if (N0[1] < shadowmax) {
                     shader = 1 - N0[1] / shadowmax;
-                    if (k === 3 || k === 4) { shaderArr[(i - istar) * width + j] = 1 - shader; }
+                    shaderArr[(i - istar) * width + j] = 1 - shader; 
                 }
                 let nr = check(dis0, roots, n0, rootTol, tol, a, c);//对应所收敛的根
                 if (valid(n0)) {
@@ -58,7 +58,7 @@ onmessage = function (e) {
     }
     //返回图像数据（buffer返回由AI指导）
     let msg = { imgData: img.data.buffer };
-    if (k === 3 || k === 4) { msg.shaderData = shaderArr.buffer; }
+    msg.shaderData = shaderArr.buffer; 
     postMessage(msg, [img.data.buffer, shaderArr.buffer]);
 }
 //牛顿法（加上收敛判断）
