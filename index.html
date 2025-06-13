@@ -73,7 +73,7 @@
       <button onclick="draw(Number(document.getElementById('Animatemethod').value))">绘制</button>
       <button onclick="stop()">终止</button><br>
       说明：系数按次数由高到低，以半角,分隔，如(x^3-1)输入1,0,0,-1，复数统一写作a+bi型，切忌输入“/”、空格等非法字符！<br>
-      动画绘制速度：<input type="range" id="speed" min="0.1" max="2" step="0.1" value="1" size="5"
+      动画绘制速度：<input type="range" id="speed" min="-1" max="3" step="0.1" value="1" size="5"
         style="border: 1px;border-radius: 10px;"><span id='speedValue'> <strong>1</strong></span><br>
       下图为根中心的局部复平面，轴长：<input id="re_im" value="10" size="5" style="border: 1px;border-radius: 10px;"><br>
       多项式次数越高，绘制时间越长，请耐心等待（建议次数不超过<strong>5</strong>）
@@ -101,6 +101,7 @@
     let workers = [];
     const numWorkers = navigator.hardwareConcurrency;//worker数量，取决于性能
     let currentAnimId = null;//检测绘制是否在运行中
+    let AnimationRunning = false;
     let imgpieces = new Array(numWorkers);//分配img片段
     let a, c;
     let re_im, ptxt, pa, pc;
@@ -127,6 +128,7 @@
       if (currentAnimId !== null) {
         cancelAnimationFrame(currentAnimId);
         currentAnimId = null;
+        AnimationRunning = false;
       }
       let canvas = document.getElementById('fractal');
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -141,6 +143,7 @@
       if (currentAnimId !== null) {
         cancelAnimationFrame(currentAnimId);
         currentAnimId = null;
+        AnimationRunning = false;
       }
       //画布构建与上一次绘制清理
       let canvas = document.getElementById('fractal');
@@ -417,42 +420,93 @@
     }
     //动画演示（逐帧图绘）
     function animatedraw(k, ctx, img, rootsradius, currRadius, fullShader, d0, cr, ci) {
-      if (currRadius === 0) { ctx.createImageData(width, height); }//第一次进入构建画布
+      if (currentAnimId === null) {
+        ctx.createImageData(width, height);
+      }//第一次进入构建画布
       //取画布数据，规避重复涂染
       let imganimate = ctx.getImageData(0, 0, width, height);
       let Data = imganimate.data;
       let currentspeed = speed;
-      for (let i = 0; i < height; i++) {
-        for (let j = 0; j < width; j++) {
-          let r;
-          //r判定处理
-          if (k === 1 || k === 3) {
-            let dx = j - cx;
-            let dy = i - cy;
-            r = Math.sqrt(dx * dx + dy * dy);
-          }
-          else {
-            //这里取最小距离
-            r = rootsradius[i][j];
-          }
-          if (k === 3 || k == 4) {
-            r *= fullShader[i * width + j];
-          }
-          //仅涂染环区
-          if (r >= currRadius && r < currRadius + currentspeed) {
-            let offset = 4 * (j + i * width);
-            Data[offset] = img.data[offset];
-            Data[offset + 1] = img.data[offset + 1];
-            Data[offset + 2] = img.data[offset + 2];
-            Data[offset + 3] = img.data[offset + 3];
+      if (AnimationRunning) { return; }
+      if (currentAnimId === null && currentspeed <= 0) {
+        speedInput.addEventListener('input', onnullspeed);
+      }
+      else {
+        AnimationRunning = true;
+        //防止循环过多堵塞甚至难以调节speed
+        if (currRadius < 0 && currentspeed < 0) {
+          speedInput.addEventListener('input', onspeed);
+        }
+        else if (currentspeed === 0) {
+          speedInput.addEventListener('input', onspeed);
+        }
+        else { pointdraw(); }
+      }
+      function pointdraw() {
+        for (let i = 0; i < height; i++) {
+          for (let j = 0; j < width; j++) {
+            let r;
+            //r判定处理
+            if (k === 1 || k === 3) {
+              let dx = j - cx;
+              let dy = i - cy;
+              r = Math.sqrt(dx * dx + dy * dy);
+            }
+            else {
+              //这里取最小距离
+              r = rootsradius[i][j];
+            }
+            if (k === 3 || k == 4) {
+              r *= fullShader[i * width + j];
+            }
+            //仅涂染环区
+            if (currentspeed > 0 && r >= currRadius && r < currRadius + currentspeed) {
+              let offset = 4 * (j + i * width);
+              Data[offset] = img.data[offset];
+              Data[offset + 1] = img.data[offset + 1];
+              Data[offset + 2] = img.data[offset + 2];
+              Data[offset + 3] = img.data[offset + 3];
+            }
+            else if (currentspeed < 0 && r >= currRadius + currentspeed && r < currRadius) {
+              let offset = 4 * (j + i * width);
+              Data[offset] = 255;
+              Data[offset + 1] = 255;
+              Data[offset + 2] = 255;
+              Data[offset + 3] = 255;
+            }
           }
         }
+        //画布展开
+        ctx.putImageData(imganimate, 0, 0);
+        if (currRadius < d0) {
+          //再次调用（该动画实现方法由AI指导完成）
+          AnimationRunning = false;
+          currentAnimId = requestAnimationFrame(() => animatedraw(k, ctx, img, rootsradius, currRadius + currentspeed, fullShader, d0, cr, ci));//流畅图绘，currentAnimId表示运行态
+        }
       }
-      //画布展开
-      ctx.putImageData(imganimate, 0, 0);
-      if (currRadius < d0) {
-        //再次调用（该动画实现方法由AI指导完成）
-        currentAnimId = requestAnimationFrame(() => animatedraw(k, ctx, img, rootsradius, currRadius + currentspeed, fullShader, d0, cr, ci));//流畅图绘，currentAnimId表示运行态
+      //动画监听函数
+      function onspeed() {
+        speedValue.textContent = speedInput.value;
+        speed = parseFloat(speedInput.value);
+        if (!AnimationRunning) {
+          speedInput.removeEventListener('input', onspeed);
+        }
+        if (currentspeed === 0 && speed != 0) {
+          currentspeed = speed;
+          pointdraw();
+          speedInput.removeEventListener('input', onspeed);
+        }
+        if (currRadius < 0 && currentspeed < 0 && speed > 0) {
+          currentspeed = speed;
+          speedInput.removeEventListener('input', onspeed);
+          if (currentAnimId !== null) { pointdraw(); }
+        }
+      }
+      function onnullspeed() {
+        if (speed > 0) {
+          pointdraw();
+          speedInput.removeEventListener('input', onnullspeed);
+        }
       }
     }
     //进度条（一些比较奇怪的用法，除颜色赋予和部分参数调整，其余均为AI实现）
