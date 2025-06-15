@@ -7,7 +7,7 @@
   <meta name="description" content="通过输入多项式系数，实现该多项式牛顿分形的绘制。此外，可以自由选择绘制方式、调整形状参数和复平面大小，使得绘制形式与内容多样化。">
   <meta name="innovation" content="相较于常规的通过webGL和python实现高复杂数学分形的绘制，本项目以纯前端JS/HTML实现了牛顿分形的绘制；
   页面包含多样化动画演示，具有可视性，交互性与趣味性也大大增加，更好地展示其数学内核；
-  系数开放到复数域，加入广义牛顿分形的形状参数，手动调整复平面大小和绘制速度，允许动画消隐，在交互上较静态分形绘制更加自由，可探讨更普遍的分形现象；
+  系数开放到复数域，加入广义牛顿分形的形状参数，手动调整复平面大小和绘制速度，在交互上较静态分形绘制更加自由，可探讨更普遍的分形现象；
   在传统JS上通过Web Worker实现多线程并行计算，极大加速了分形计算，在html上也能优雅地展示较高分辨的分形图案，更具泛用性。">
   <meta name="viewport" content="width=device-width" />
   <title>牛顿分形</title>
@@ -73,7 +73,7 @@
       <button onclick="draw(Number(document.getElementById('Animatemethod').value))">绘制</button>
       <button onclick="stop()">终止</button><br>
       说明：系数按次数由高到低，以半角,分隔，如(x^3-1)输入1,0,0,-1，复数统一写作a+bi型，切忌输入“/”、空格等非法字符！<br>
-      动画绘制速度：<input type="range" id="speed" min="-1" max="3" step="0.1" value="1" size="5"
+      动画绘制速度：<input type="range" id="speed" min="-1" max="3" step="0.01" value="1" size="5"
         style="border: 1px;border-radius: 10px;"><span id='speedValue'> <strong>1</strong></span><br>
       下图为根中心的局部复平面，轴长：<input id="re_im" value="10" size="5" style="border: 1px;border-radius: 10px;"><br>
       多项式次数越高，绘制时间越长，请耐心等待（建议次数不超过<strong>5</strong>）
@@ -491,15 +491,17 @@
         if (!AnimationRunning) {
           speedInput.removeEventListener('input', onspeed);
         }
-        if (currentspeed === 0 && speed != 0) {
-          currentspeed = speed;
-          pointdraw();
-          speedInput.removeEventListener('input', onspeed);
-        }
-        if (currRadius < 0 && currentspeed < 0 && speed > 0) {
-          currentspeed = speed;
-          speedInput.removeEventListener('input', onspeed);
-          if (currentAnimId !== null) { pointdraw(); }
+        else {
+          if (currentspeed === 0 && speed != 0) {
+            currentspeed = speed;
+            pointdraw();
+            speedInput.removeEventListener('input', onspeed);
+          }
+          if (currRadius < 0 && currentspeed < 0 && speed > 0) {
+            currentspeed = speed;
+            speedInput.removeEventListener('input', onspeed);
+            if (currentAnimId !== null) { pointdraw(); }
+          }
         }
       }
       function onnullspeed() {
@@ -579,9 +581,6 @@
       若你对分形兴趣十足，不妨试试用webGL实现实时分形渲染，这也是更常用的方法，祝你好运！ο(=•ω＜=)ρ⌒☆
     </div>
   </footer>
-</body>
-
-</html>
 </body>
 
 </html>
