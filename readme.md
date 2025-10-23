@@ -3,7 +3,7 @@
 ## About the Repository
 本项目基于 MIT 协议开源，详情请查阅 LICENSE 文件。<br>
 为方便同学们学习html编写个人作品，参考往届代码程序和功能实现，我整理了本人计科导的代码，以作参考和调试。<br>
-若想要进行在线网页尝试，请访问基于github构建的网站<a href="MDN</a>https://rerefrain.github.io/math" style="color: #fff;">Newton Fractal</a>。
+若想要进行在线网页尝试，请访问基于github构建的网站<a href="https://rerefrain.github.io/math" style="color: #fff;">Newton Fractal</a>。
 
 ## Function of the website
 网站实现了牛顿分形的绘制功能，用户可自主输入多项式系数进行可视化，计算由CPU多线程并行完成，自动取计算机支持的最大核数；<br>
