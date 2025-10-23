@@ -13,7 +13,7 @@
 为实现代码高性能高耦合，部分函数分立性较差，变量命名不完全，阅读不便尽情谅解。
 
 ## Study Resources
-MDN<a href="https://developer.mozilla.org/zh-CN/" style="color: #fff;">的教程较适合html初学者入门，能够较为基础地把握html、CSS和script编写方法和一些规范，大体掌握网站编写流程。<br>
+<a href="https://developer.mozilla.org/zh-CN/" style="color: #fff;">MDN</a>的教程较适合html初学者入门，能够较为基础地把握html、CSS和script编写方法和一些规范，大体掌握网站编写流程。<br>
 
 对短时间内完成个人作品而言，很难有速成的进阶教程可以帮助完成一些高阶的CSS渲染和script代码以实现理想的功能。
 因此，我推荐可以善用AI，在理解的基础上实现这部分功能。切忌使用AI完成个人创新部分或除此之外的大部分代码，这样做效果有限。
