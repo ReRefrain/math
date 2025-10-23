@@ -3,6 +3,7 @@
 ## About the Repository
 本项目基于 MIT 协议开源，详情请查阅 LICENSE 文件。<br>
 为方便同学们学习html编写个人作品，参考往届代码程序和功能实现，我整理了本人计科导的代码，以作参考和调试。
+网页尝试请访问基于github构建的网站<a href="MDN</a>https://rerefrain.github.io/math" style="color: #fff;">Newton Fractal</a>
 
 **仅包含最终提交版本**
 
